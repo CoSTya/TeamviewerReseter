@@ -1,12 +1,11 @@
+import sys
 import argparse
 import TeamViewerReset as TVR
-	
-
-	return choices
-
+		
 
 def configure():
-	""" Parse command line options """
+	""" Parse command line options and return them """
+	
 	parser = argparse.ArgumentParser(description="Reset TeamViewer's ID")
 
 	parser.add_argument(
@@ -15,28 +14,37 @@ def configure():
 		help="List the available network devices")
 
 	parser.add_argument(
-		"filter", 
-		nargs="?", 
-		default="", 
+		"filter",
+		nargs='?',
+		default="",
 		help="Show only the devices with an ID or description, which contains the filter-word")
-
 	
 	conf = parser.parse_args()
 
 	return conf
 
+def list_networks(filterWord=""):
+	""" Prints the available networks. The function accepts
+	an optional filter-word argument so that only certain
+	network connections can be viewed """
+
+	networkInfo = TVR.get_networks_info(filterWord)
+
+	for k in networkInfo:
+		print "%s - %s" % (k, networkInfo[k][0])
+
+
 
 def main(conf):
-	
+	""" Gets the parsed arguments and handles them """
 
+	# List network connections
 	if conf.list:
-		networkInfo = TVR.get_networks_info(conf.filter)
-
-
-	choiceList = format_combo_choices(networkInfo)
-	for c in choiceList:
-				print c
+		list_networks(conf.filter)
+		print "Press any key to exit..."
+		raw_input()
+		return 0
 
 
 if __name__ == "__main__":
-	main(configure())
+	sys.exit(main(configure()))
