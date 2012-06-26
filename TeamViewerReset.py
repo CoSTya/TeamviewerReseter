@@ -73,7 +73,7 @@ def match_interfaces_to_connections(interfaces, connections):
 
 	Example:
 
-	{"Local Area Connection 2: ("Broadcom NetXtreme Ethernet Adapter", "pci/dev1232sys5456")
+	{"Local Area Connection 2: ("Broadcom NetXtreme Ethernet Adapter", "pci/dev1232sys5456"), ...}
 
 	"""
 	
@@ -110,15 +110,10 @@ def get_networks_info(filterWord=""):
 
 	return networksInfo
 
-def print_net_info(netInfo):
-	for k in netInfo:
-		print "Connection: %s" % k
-		print "Device Description: %s" % netInfo[k][0]
-		print "Device ID: %s" % netInfo[k][1]
-		print "-" * 56
 
 def test():
-	
+	""" Function showing the features the module """
+
 	conns = get_networks_info()
 	print "Default output"
 	print_net_info(conns)
