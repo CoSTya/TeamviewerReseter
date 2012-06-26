@@ -41,8 +41,7 @@ def main(conf):
 	# List network connections
 	if conf.list:
 		list_networks(conf.filter)
-		print "Press any key to exit..."
-		raw_input()
+		raw_input("Press any key to exit...")
 		return 0
 
 
