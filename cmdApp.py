@@ -1,17 +1,5 @@
 import argparse
 import TeamViewerReset as TVR
-
-
-def format_combo_choices(network_info):
-
-	choices = []
-
-	connectionName = network_info.keys()
-
-	connectionDevice = network_info.values()
-
-	choices = [("%s - %s" % (x, network_info[x][0])) for x in network_info]
-
 	
 
 	return choices
