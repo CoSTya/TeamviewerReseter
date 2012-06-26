@@ -120,7 +120,7 @@ def devcon_run(command, devID):
 
 	if command.lower() in VALID_COMMANDS:
 
-		devconProc = subprocess.Popen(["devcon.exe", command, devID], stdout=subprocess.PIPE)
+		devconProc = subprocess.Popen(["bin\\devcon.exe", command, devID], stdout=subprocess.PIPE)
 		result = devconProc.communicate()[0]
 
 		return devID.upper() in result.upper()
@@ -134,7 +134,7 @@ def macshift_run(netName):
 	# Network Name must be encoded in order to work with macshift
 	netName = netName.encode("Windows-1253")
 
-	macshiftProc = subprocess.Popen(["macshift.exe", "-r", "-i", netName], stdout=subprocess.PIPE)
+	macshiftProc = subprocess.Popen(["bin\\macshift.exe", "-r", "-i", netName], stdout=subprocess.PIPE)
 	result = macshiftProc.communicate()[0]
 
 	""" When macshift.exe fails to change the MAC, it says:
