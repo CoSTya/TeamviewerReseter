@@ -1,6 +1,7 @@
 import os
 import regobj as reg
 from shutil import rmtree
+import subprocess
 
 
 def del_appdata_tv_dir():
@@ -11,7 +12,7 @@ def del_appdata_tv_dir():
 
 
 def del_tv_reg_keys():
-	""" Delete Teamveiwer's registry keys, placed in HKLM and HKCU """
+	""" Delete Teamviewer's registry keys, placed in HKLM and HKCU """
 
 	key = reg.HKLM.Software
 	key.del_subkey("Teamviewer")
@@ -110,16 +111,71 @@ def get_networks_info(filterWord=""):
 
 	return networksInfo
 
+def devcon_run(command, devID):
+	""" Runs the devcon program with the specified command.
+	If the result contains the devID which is given, then
+	the command has been executed successfully and True is returned """
+
+	VALID_COMMANDS = ["enable", "disable"]
+
+	if command.lower() in VALID_COMMANDS:
+
+		devconProc = subprocess.Popen(["devcon.exe", command, devID], stdout=subprocess.PIPE)
+		result = devconProc.communicate()[0]
+
+		return devID.upper() in result.upper()
+	else:
+		return False
+
+def macshift_run(netName):
+	""" Runs the macshift program, with the name of the network's
+	MAC to be changed to a new random MAC"""
+
+	# Network Name must be encoded in order to work with macshift
+	netName = netName.encode("Windows-1253")
+
+	macshiftProc = subprocess.Popen(["macshift.exe", "-r", "-i", netName], stdout=subprocess.PIPE)
+	result = macshiftProc.communicate()[0]
+
+	""" When macshift.exe fails to change the MAC, it says:
+	"Could not find adapter name..."
+
+	So checking if the string "Could not" is in the result
+	is enough to tell if the MAC change was successful or not """
+
+	success = not ("could not" in result.lower())
+
+	return success
+	
+def change_mac(networkName, deviceID):
+	""" Changes the MAC address of the specified network.
+	The arguments that must be passed are the network's name
+	and the device's ID. Return True if the change was successful """
+
+	success = False
+
+	if networkName and deviceID:
+		if devcon_run("disable", deviceID):
+			
+			success = macshift_run(networkName)
+			devcon_run("enable", deviceID)
+
+	return success
+
 
 def test():
-	""" Function showing the features the module """
+	""" Function showing the features of the module """
 
 	conns = get_networks_info()
 	print "Default output"
-	print_net_info(conns)
+	
+	net_to_test = None
 
-	raw_input()
+	for k in conns:
+		print "%s - %s, %s" % (k, conns[k][0], conns[k][1])
+		if "Y" in raw_input("Is it this one? (Y/) ").upper():
+			net_to_test = k
+			break
 
-	conns = get_networks_info("pci")
-	print "Filtered output with \"PCI\""
-	print_net_info(conns)
+
+test()
