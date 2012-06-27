@@ -6,22 +6,47 @@ import TeamViewerReset as TVR
 def configure():
 	""" Parse command line options and return them """
 	
+	# Top level parsers	
 	parser = argparse.ArgumentParser(description="Reset TeamViewer's ID")
 
-	parser.add_argument(
+
+	list_group = parser.add_argument_group("List", "List network connections and their info")
+	reset_group = parser.add_argument_group("Reset", "Actions to reset TeamViewer")
+	
+
+	list_group.add_argument(
 		"-l", "--list", 
-		action="store_true",
+		nargs="?",
+		default="",
+		dest="filter",
+		metavar="FILTER",
 		help="List the available network devices")
 
-	parser.add_argument(
-		"filter",
-		nargs='?',
-		default="",
-		help="Show only the devices with an ID or description, which contains the filter-word")
-	
+	reset_group.add_argument(
+		"-r", "--registry",
+		action="store_true",
+		help="Remove the registry values")
+
+	reset_group.add_argument(
+		"-d", "--directory",
+		action="store_true",
+		help="Remove the AppData sub-directory")
+
+	reset_group.add_argument(
+		"-m", "--MAC",
+		action="store",
+		metavar="Network",
+		help="Change the MAC of the network that's specified. If a network index is not specified " +
+		"interactive mode is entered")
+
+	reset_group.add_argument(
+		"-a", "-all")
+
+
 	conf = parser.parse_args()
 
 	return conf
+
 
 def list_networks(filterWord=""):
 	""" Prints the available networks. The function accepts
@@ -30,19 +55,22 @@ def list_networks(filterWord=""):
 
 	networkInfo = TVR.get_networks_info(filterWord)
 
+	# Create index numbers for the networks
+
+
+
 	for k in networkInfo:
 		print "%s - %s" % (k, networkInfo[k][0])
-
 
 
 def main(conf):
 	""" Gets the parsed arguments and handles them """
 
 	# List network connections
-	if conf.list:
+	if conf.filter:
 		list_networks(conf.filter)
-		raw_input("Press any key to exit...")
 		return 0
+
 
 
 if __name__ == "__main__":
