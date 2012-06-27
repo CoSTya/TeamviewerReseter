@@ -177,5 +177,8 @@ def test():
 			net_to_test = k
 			break
 
+	if net_to_test:
+		change_mac(net_to_test, conns[net_to_test][1])
 
-test()
+if __name__ == '__main__':
+	test()
