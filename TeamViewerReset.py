@@ -1,3 +1,21 @@
+"""
+TeamViewerReset.py
+
+Synopsis: The module contains various functions for tasks required 
+for the resetting of TeamViewer's unique ID.
+
+These tasks are:
+	- Removal of some registry keys
+	- Removal of a directory stored in AppData
+	- Change of the network card's MAC address
+
+
+Author: Alex Ioannidis <atipa@otenet.gr>
+Date: June 2012
+
+"""
+
+
 import os
 import regobj as reg
 from shutil import rmtree
@@ -22,99 +40,143 @@ def del_tv_reg_keys():
 
 
 def get_network_interfaces():
-	""" Return a dictionary with interface description, and their repsective
-	device ID """
+	""" Return a list of dictionaries with the interface description and their repsective device ID
 
-	interfaces = {}
+	Example dictionary:
+	interface = {"Name" : "Broadcom NetXtreme Gigabit",
+	"ID" : "pci/dev1232sys5456"} 
+
+	"""
+
+	interfacesList = []
 
 	key = reg.HKLM.SYSTEM.CurrentControlSet.Control.Class
 
 	interfaces_key = None
 
 
+	# Find the registry key holding all the Network Interfaces
+
 	for sk in key.subkeys():
 		if "Class" in sk:
 			if sk["Class"].data == "Net":
 				interfaces_key = sk
 
+	# Search in the interfaces, and add the ones with description and ID
+
 	if interfaces_key:
 		for sk in interfaces_key.subkeys():
 			if "ComponentId" in sk:
 				if "DriverDesc" in sk:
-					interfaces[sk["DriverDesc"].data] = sk["ComponentId"].data
+					interface = {"Description" : sk["DriverDesc"].data, 
+					"ID" : sk["ComponentId"].data}
+					
+					interfacesList.append(interface)
 
-	return interfaces
+	return interfacesList
 
 
 def get_network_connections():
-	""" Return a dictionary with the connection names and their
-	respective Device ID """
+	""" Return a list of dictionaries with the connection names and their respective Device ID
 
-	connections = {}
+	Example dictionary:
+	connection = {"Name" : "Local Area Connection 4",
+	"ID" : "pci/dev1232sys5456"}
+
+	"""
+
+	connectionsList = []
 
 	key = reg.HKLM.SYSTEM.CurrentControlSet.Control.Network
+
+	connections_key = None
+
+	# Find the registry key holding all the available Network Connections
+
+	# TODO: Modify function to work on Windows 7 (and possibly Vista aswell)
+	# since the keys in Win7 doesn't have a value specifying which key holds
+	# network connections info, so the code below is useless
 
 	for sk in key.subkeys():
 		if "Class" in sk:
 			if sk["Class"].data == "Net":
-				key = sk
+				connections_key = sk
 
-	for sk in key.subkeys():
+	# Search in the networks and find all the ones with a Name and a DeviceID
+
+	for sk in connections_key.subkeys():
 		if "Connection" in sk:
-			connections[sk.Connection["Name"].data] = sk.Connection["PnpInstanceID"].data
+			connection = {"Name" : sk["Name"].data,
+			"ID" : sk["PnpInstanceID"].data}
 
-	return connections
+			connectionsList.append(connection)
 
 
-def match_interfaces_to_connections(interfaces, connections):
-	""" Given two dictionaries, creates matches to determine
-	the valid and running connections, and return a dictionary
-	with the connection's name as the key and a tuple with
-	the device ID and the device description as the key's value 
+	return connectionsList
 
-	Example:
 
-	{"Local Area Connection 2: ("Broadcom NetXtreme Ethernet Adapter", "pci/dev1232sys5456"), ...}
+def get_matching_networks_to_interfaces():
+	""" Given two lists produced by the get_network_connections
+	and get_network_interfaces functions, find the network connections
+	that have DeviceIDs that match the IDs of the interfaces we have .
+
+	After the matching process is completed, a new list is returned
+	containing dictionaries holding the Connection Name, the Interface
+	Description and the Interface ID.
+
+	Example dictionary:
+	matchedConnection = {"Name" : "Local Area Network 2",
+	"InterfaceDesc" : "Broadcom NetXtreme Ethernet Adapter",
+	"InterfaceID" : "pci/dev1232sys5456"}
 
 	"""
 	
-	matches = {}
+	matchedConnectionsList = []
 
-	for interface in interfaces:
-		for conn in connections:
-			if interfaces[interface].upper() in connections[conn]:
-				matches[conn] = (interface, interfaces[interface])
+	connectionsList = get_network_connections()
+	interfacesList = get_network_interfaces()
 
-	return matches
+	for interface in interfacesList:
+		for connection in connectionsList:
+			if interface["ID"].upper() in connection["ID"].upper():
+				matchedConnection = {"Name" : connection["Name"],
+				"InterfaceDesc" : interface["Description"],
+				"InterfaceID" : interface["ID"]}
+
+				matchedConnectionsList.append(matchedConnection)
+
+	return matchedConnectionsList
 
 
-def get_networks_info(filterWord=""):
-	""" Returns a dictionary with all the network connections
+def get_available_networks(filterWord=""):
+	""" Returns a list of dictionaries with all the network connections
 	available. If a filter word is specified only connections 
-	with device descriptions or device IDs containing the
-	filter word will be returned """
+	with device descriptions or device IDs containing the filter-word,
+	will be returned
+
+	"""
+	
+	availableNetworks = []
+
+	matchedNetworks = get_matching_networks_to_interfaces()
+
+	for m in matchedNetworks:
 		
-
-	interfaces = get_network_interfaces()
-	connections = get_network_connections()
-	matches = match_interfaces_to_connections(interfaces, connections)
-
-	networksInfo = {}
-
-	for m in matches:
-		
-		filterWordInDesc = filterWord.upper() in matches[m][0].upper() # ignore case
-		filterWordInID = filterWord.upper() in matches[m][1].upper()
+		filterWordInDesc = filterWord.upper() in m["InterfaceDesc"].upper()
+		filterWordInID = filterWord.upper() in m["InterfaceID"].upper()
 
 		if filterWordInDesc or filterWordInID:
-			networksInfo[m] = matches[m]
+			
+			availableNetworks.append(m)
 
-	return networksInfo
+	return availableNetworks
 
 def devcon_run(command, devID):
 	""" Runs the devcon program with the specified command.
 	If the result contains the devID which is given, then
-	the command has been executed successfully and True is returned """
+	the command has been executed successfully and True is returned 
+
+	"""
 
 	VALID_COMMANDS = ["enable", "disable"]
 
@@ -129,7 +191,9 @@ def devcon_run(command, devID):
 
 def macshift_run(netName):
 	""" Runs the macshift program, with the name of the network's
-	MAC to be changed to a new random MAC"""
+	MAC to be changed to a new random MAC
+
+	"""
 
 	# Network Name must be encoded in order to work with macshift
 	netName = netName.encode("Windows-1253")
@@ -141,7 +205,9 @@ def macshift_run(netName):
 	"Could not find adapter name..."
 
 	So checking if the string "Could not" is in the result
-	is enough to tell if the MAC change was successful or not """
+	is enough to tell if the MAC change was successful or not 
+
+	"""
 
 	success = not ("could not" in result.lower())
 
@@ -150,7 +216,9 @@ def macshift_run(netName):
 def change_mac(networkName, deviceID):
 	""" Changes the MAC address of the specified network.
 	The arguments that must be passed are the network's name
-	and the device's ID. Return True if the change was successful """
+	and the device's ID. Return True if the change was successful 
+
+	"""
 
 	success = False
 
@@ -166,19 +234,11 @@ def change_mac(networkName, deviceID):
 def test():
 	""" Function showing the features of the module """
 
-	conns = get_networks_info()
-	print "Default output"
-	
-	net_to_test = None
+	interfaces = get_network_interfaces()
 
-	for k in conns:
-		print "%s - %s, %s" % (k, conns[k][0], conns[k][1])
-		if "Y" in raw_input("Is it this one? (Y/) ").upper():
-			net_to_test = k
-			break
-
-	if net_to_test:
-		change_mac(net_to_test, conns[net_to_test][1])
+	for i in interfaces:
+		print "Interface Desc: %s" % i["Description"]
+		print "Interface ID: %s" % i["ID"]
 
 if __name__ == '__main__':
 	test()
