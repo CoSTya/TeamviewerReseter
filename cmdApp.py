@@ -11,7 +11,7 @@ def configure():
 
 
 	list_group = parser.add_argument_group("List", "List network connections and their info")
-	reset_group = parser.add_argument_group("Reset", "Actions to reset TeamViewer")
+	reset_group = parser.add_argument_group("Reset", "Actions to reset the TeamViewer ID")
 	
 
 	list_group.add_argument(
@@ -34,14 +34,20 @@ def configure():
 
 	reset_group.add_argument(
 		"-m", "--MAC",
-		action="store",
-		metavar="Network",
-		help="Change the MAC of the network that's specified. If a network index is not specified " +
+		action="store_true",
+		help="Change the MAC of the network that's specified" +
 		"interactive mode is entered")
 
 	reset_group.add_argument(
-		"-a", "-all")
+		"-a", "-all", 
+		action="store_true",
+		help="Execute all the actions to reset the TeamViewer ID")
 
+	reset_group.add_argument(
+		"network",
+		nargs="?",
+		default="",
+		help="If a network index is not specified")
 
 	conf = parser.parse_args()
 
@@ -51,12 +57,13 @@ def configure():
 def list_networks(filterWord=""):
 	""" Prints the available networks. The function accepts
 	an optional filter-word argument so that only certain
-	network connections can be viewed """
+	network connections can be viewed
+
+	 """
 
 	networkInfo = TVR.get_networks_info(filterWord)
 
 	# Create index numbers for the networks
-
 
 
 	for k in networkInfo:
